@@ -2,22 +2,14 @@
 <html>
     <head>
         <title>test</title>
+        <script src="direct-inclusion.js"></script>
+        <script>document.write('<script src="document-write.js"><\/script>');</script>
         <script>(function() {
              var script = document.createElement('script');
-             script.src = 'mraid.js';
-
-             script.addEventListener('load', function() {
-                 console.log('loaded');
-             });
-
-             script.addEventListener('error', function(e) {
-                 console.error('error');
-                 console.error(e);
-             });
+             script.src = 'dynamic-inclusion.js';
 
              document.head.appendChild(script);
-         })();
-        </script>
+         })();</script>
     </head>
     <body>
         <p>hi</p>
