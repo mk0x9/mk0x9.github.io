@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <title>VIS.X</title>
+    </head>
+    <body style="margin: 0px;">
+        <script src="mraid.js"></script>
+        <div id="visx-333"></div>
+        <script>
+            (function() {
+                var possibleSizes = [[300, 250], [320, 480], [640, 360]];
+
+                function getCreativeSize() {
+                    var size = possibleSizes[Math.floor(Math.random() * possibleSizes.length)];
+                }
+
+                var wrapper = document.createElement('div');
+                var info = document.createElement('pre');
+                var logger = document.createElement('pre');
+                var infoObject = Object.create(null);
+
+                if (document.readyState === 'complete') {
+                    init();
+                } else {
+                    window.addEventListener('load', init, false);
+                }
+
+                function init() {
+                    document.documentElement.style.margin = '0';
+                    document.documentElement.style.padding = '0';
+
+                    document.body.style.margin = '0';
+                    document.body.style.padding = '0';
+
+                    wrapper.style.width = '100%';
+                    wrapper.style.height = '100%';
+                    wrapper.style.overflow = 'hidden';
+                    wrapper.style.backgroundColor = '#f0f0f0';
+                    wrapper.style.boxSizing = 'border-box';
+                    wrapper.style.border = '1px solid #000'
+
+                    info.style.margin = '0';
+                    info.style.width = '40%';
+                    info.style.height = '100%';
+                    info.style.boxSizing = 'content-box';
+                    info.style.borderRight = '1px solid #ccc';
+                    info.style.overflowX = 'hidden';
+                    info.style.overflowY = 'scroll';
+                    info.style.display = 'inline-block';
+                    info.style.fontSize = '30%';
+
+                    logger.style.margin = '0';
+                    logger.style.width = '59%';
+                    logger.style.height = '100%';
+                    logger.style.overflowX = 'hidden';
+                    logger.style.overflowY = 'scroll';
+                    logger.style.display = 'inline-block';
+                    logger.style.fontSize = '40%';
+
+                    wrapper.appendChild(info);
+                    wrapper.appendChild(logger);
+                    document.body.appendChild(wrapper);
+
+                    if (typeof window.MRAID_ENV === 'object' && window.MRAID_ENV) {
+                        log(JSON.stringify(window.MRAID_ENV));
+                    } else {
+                        log('MRAID_ENV not found');
+                    }
+
+                    log('loading mraid.js');
+
+                    if (typeof mraid === 'undefined') {
+                        var mraidScript = document.createElement('script');
+
+                        mraidScript.src = 'mraid.js';
+
+                        mraidScript.addEventListener('load', mraidLoaded, false);
+                        mraidScript.addEventListener('error', mraidLoadError, false);
+
+                        document.head.appendChild(mraidScript);
+                    } else {
+                        mraidLoaded();
+                    }
+                }
+
+                function mraidLoadError() {
+                    log('unable to load mraid.js');
+                }
+
+                function mraidLoaded() {
+                    var mraidState = callMraid('getState');
+
+                    log('mraid state: ' + mraidState);
+
+                    if (mraidState === 'loading') {
+                        callMraid('addEventListener', 'ready', mraidReady);
+                    } else {
+                        mraidReady();
+                    }
+                }
+
+                function mraidReady() {
+                    var mraidVersion = callMraid('getVersion');
+
+                    log('mraid version: ' + mraidVersion);
+
+                    setInfo('ver', mraidVersion);
+
+                    if (typeof MRAID_ENV !== 'undefined') {
+                        log('sdk: ' + MRAID_ENV.sdk);
+
+                        setInfo('sdk', MRAID_ENV.sdk);
+
+                        log('sdk ver: ' + MRAID_ENV.sdkVersion);
+
+                        setInfo('sdkver', MRAID_ENV.sdkVersion);
+                    }
+
+                    var mraidPlacementType = callMraid('getPlacementType');
+
+                    log('mraid placement: ' + mraidPlacementType);
+
+                    setInfo('placement', mraidPlacementType);
+
+                    updateSize();
+
+                    callMraid('addEventListener', 'sizeChange', updateSize);
+
+                    updateViewable();
+
+                    callMraid('addEventListener', 'viewableChange', updateViewable);
+
+                    updateState();
+
+                    callMraid('addEventListener', 'stateChange', updateState);
+
+                    callMraid('addEventListener', 'viewabilityChange', updateViewability);
+
+                    testVideo();
+
+                    var visxPlacementEffect = callMraid('visxGetPlacementEffect');
+
+                    if (visxPlacementEffect !== undefined) {
+                        log('visxPlacementEffect: ' + visxPlacementEffect);
+                    }
+
+                    var visxPlacementWidth = callMraid('visxGetPlacementWidth');
+                    var visxPlacementHeight = callMraid('visxGetPlacementHeight');
+
+                    if (visxPlacementWidth !== undefined && visxPlacementHeight !== undefined) {
+                        log('visxPlacement dimensions: ' + visxPlacementWidth + 'x' + visxPlacementHeight);
+                    }
+
+                    var size = getCreativeSize();
+
+                    callMraid('visxToBanner', size[0], size[1]);
+
+                }
+
+                function updateSize() {
+                    var size = mraidGetSize();
+                    var dimensions = '' + size.width + 'x' + size.height;
+                    var height = '' + size.height + 'px';
+
+                    log('size: ' + dimensions);
+                    setInfo('size', dimensions);
+
+                    wrapper.style.height = height;
+                    info.style.height = height;
+                    logger.style.height = height;
+                }
+
+                function updateViewable() {
+                    var viewable = mraid.isViewable();
+
+                    log('viewable: ' + viewable);
+
+                    setInfo('viewable', viewable);
+                }
+
+                function updateState() {
+                    var state = mraid.getState();
+
+                    log('state: ' + state);
+
+                    setInfo('state', state);
+                }
+
+                function updateViewability(percentage) {
+                    log('viewability: ' + percentage + '%');
+                }
+
+                function setInfo(prop, value) {
+                    infoObject[prop] = value;
+
+                    var str = '';
+
+                    Object.keys(infoObject).forEach(function(prop) {
+                        str += prop + ': ' + infoObject[prop] + '\n';
+                    });
+
+                    info.textContent = str.trim();
+                }
+
+                function mraidGetSize() {
+                    if (mraid.getCurrentPosition) {
+                        var currentPosition = callMraid('getCurrentPosition');
+
+                        if (currentPosition.width > 0 && currentPosition.height > 0) {
+                            return {
+                                width: currentPosition.width,
+                                height: currentPosition.height
+                            };
+                        }
+                    } else if (mraid.getSize) {
+                        var size = callMraid('getSize');
+
+                        if (size.width > 0 && size.height > 0) {
+                            return {
+                                width: size.width,
+                                height: size.height
+                            };
+                        }
+                    }
+
+                    return {
+                        width: 0,
+                        height: 0
+                    };
+                }
+
+                function log(message) {
+                    message = Math.floor(performance.now()) + ' ' + message;
+
+                    console.log(message);
+
+                    logger.textContent = message + '\n' + logger.textContent;
+                }
+
+                function logError(message) {
+                    message = Math.floor(performance.now()) + ' ERR: ' + message;
+
+                    console.error(message);
+
+                    logger.textContent = message + '\n' + logger.textContent;
+                }
+
+                function callMraid(functionName) {
+                    var args = [];
+
+                    for (var i = 1; i < arguments.length; i++) {
+                        args.push(arguments[i]);
+                    }
+
+                    try {
+                        var result = mraid[functionName].apply(mraid, args);
+                    } catch (error) {
+                        console.error(error);
+
+                        logError('Error calling mraid.' + functionName);
+
+                        return;
+                    }
+
+                    return result;
+                }
+
+                function testVideo() {
+                    var video = document.createElement('video');
+
+                    video.style.width = '40px';
+                    video.style.height = '23px';
+                    video.style.position = 'absolute';
+                    video.style.opacity = '0.5';
+                    video.style.bottom = '0';
+                    video.style.right = '0';
+
+                    video.autoplay = true;
+                    video.muted = true;
+                    video.loop = true;
+
+                    if ('playsInline' in video) {
+                        video.playsInline = true;
+                    }
+
+                    video.src = 'https://www.trinckle.com/videotest/small.mp4#t=0.001';
+
+                    video.addEventListener('canplay', function() {
+                        video.play();
+                    });
+
+                    wrapper.appendChild(video);
+                }
+            })();
+        </script>
+    </body>
+</html>
